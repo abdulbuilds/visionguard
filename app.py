@@ -2,10 +2,10 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-import pyttsx3
 from datetime import datetime
 from streamlit_lottie import st_lottie
 import requests
+import streamlit.components.v1 as components
 from labels import FINAL_LABELS
 
 # ==========================================
@@ -14,7 +14,8 @@ from labels import FINAL_LABELS
 st.set_page_config(
     page_title="VisionGuard AI | Pro",
     page_icon="🚦",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 if "history" not in st.session_state:
@@ -40,24 +41,26 @@ def load_lottieurl(url: str):
 model = load_model()
 lottie_radar = load_lottieurl("https://lottie.host/8038755b-427d-419b-9807-63a562453c0d/fN1R20Kq1X.json")
 
-def speak(text):
-    try:
-        engine = pyttsx3.init()
-        engine.say(text)
-        engine.runAndWait()
-    except: pass
+# WEB-COMPATIBLE VOICE BROADCAST
+def speak_web(text):
+    js_code = f"""
+        <script>
+        var msg = new SpeechSynthesisUtterance('{text}');
+        window.speechSynthesis.speak(msg);
+        </script>
+    """
+    components.html(js_code, height=0)
 
 def preprocess_image(img):
     img_res = img.convert("RGB").resize((IMG_SIZE, IMG_SIZE))
     return np.expand_dims(np.array(img_res) / 255.0, axis=0)
 
 # ==========================================
-# 3. DYNAMIC STYLING (Animations Included)
+# 3. DYNAMIC STYLING
 # ==========================================
 def apply_styles(bar_color="#00f2fe"):
     st.markdown(f"""
         <style>
-        /* Moving Background */
         @keyframes gradient {{
             0% {{ background-position: 0% 50%; }}
             50% {{ background-position: 100% 50%; }}
@@ -68,14 +71,12 @@ def apply_styles(bar_color="#00f2fe"):
             background-size: 400% 400%;
             animation: gradient 15s ease infinite;
             color: white;
+            transition: all 0.5s ease;
         }}
-
-        /* Fade-In & Pop Animation for Result */
         @keyframes slideIn {{
             from {{ opacity: 0; transform: translateY(30px) scale(0.95); }}
             to {{ opacity: 1; transform: translateY(0) scale(1); }}
         }}
-
         .result-card {{
             background: rgba(255, 255, 255, 0.07);
             padding: 30px;
@@ -84,24 +85,17 @@ def apply_styles(bar_color="#00f2fe"):
             text-align: center;
             backdrop-filter: blur(15px);
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            animation: slideIn 0.6s cubic-bezier(0.23, 1, 0.32, 1); /* Magic Pop Effect */
+            animation: slideIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
         }}
-
-        .radar-box {{
-            animation: slideIn 0.8s ease-out;
-        }}
-
         .sign-text {{
             font-size: 3.2rem; font-weight: 800; color: #00f2fe; 
             text-shadow: 0 0 15px rgba(0,242,254,0.5);
             display: block; margin: 15px 0;
         }}
-
         section[data-testid="stSidebar"] {{
-            background-color: rgba(15, 12, 41, 0.9) !important;
+            background-color: rgba(15, 12, 41, 0.95) !important;
             backdrop-filter: blur(15px);
         }}
-
         div[data-testid="stProgress"] > div > div > div > div {{
             background-color: {bar_color} !important;
             transition: width 0.8s ease-in-out;
@@ -110,7 +104,7 @@ def apply_styles(bar_color="#00f2fe"):
         """, unsafe_allow_html=True)
 
 # ==========================================
-# 4. SIDEBAR - ACTIVITY LOG
+# 4. SIDEBAR
 # ==========================================
 with st.sidebar:
     st.title("🕒 Activity Log")
@@ -130,55 +124,51 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# 5. MAIN DASHBOARD UI
+# 5. MAIN UI
 # ==========================================
 st.title("🚦 VisionGuard Pro")
-st.caption("Advanced Neural Traffic Recognition System")
+st.caption("AI-Powered Traffic Safety & Recognition System")
 
 col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
-    st.subheader("📥 Input Stream")
+    st.subheader("📥 Input Feed")
     tabs = st.tabs(["📁 File Upload", "📷 Live Camera"])
     img_final = None
     
     with tabs[0]:
-        f = st.file_uploader("Upload", type=["jpg","png","jpeg"], key="up_v4", label_visibility="collapsed")
+        f = st.file_uploader("Upload", type=["jpg","png","jpeg"], key="up_final", label_visibility="collapsed")
         if f: img_final = Image.open(f)
     with tabs[1]:
-        c = st.camera_input("Capture", key="cam_v4", label_visibility="collapsed")
+        c = st.camera_input("Capture", key="cam_final", label_visibility="collapsed")
         if c: img_final = Image.open(c)
     
     if img_final:
-        st.image(img_final, use_container_width=True, caption="Target Frame")
+        st.image(img_final, use_container_width=True, caption="Analyzed Image")
 
-# ==========================================
-# 6. ANIMATED HIDDEN OUTPUT BLOCK
-# ==========================================
 with col_right:
     st.subheader("🧠 Intelligence Output")
-    
     output_placeholder = st.empty()
 
     if img_final:
-        # Prediction Logic
+        # Prediction
         batch = preprocess_image(img_final)
         preds = model.predict(batch, verbose=0)
         cid = np.argmax(preds)
         conf = float(np.max(preds)) * 100
         label = FINAL_LABELS[cid]
         
-        # Color & History
+        # Color & Style
         bar_color = "#00ff88" if conf >= 85 else "#ffee00" if conf >= 60 else "#ff4b4b"
         apply_styles(bar_color)
         
+        # History
         t_now = datetime.now().strftime("%H:%M:%S")
         thumb = img_final.copy()
         thumb.thumbnail((80, 80))
         if not st.session_state.history or st.session_state.history[-1]['label'] != label:
             st.session_state.history.append({"label": label, "conf": conf, "time": t_now, "thumb": thumb})
 
-        # Display RESULT CARD (With Pop Animation)
         with output_placeholder.container():
             st.markdown(f"""
                 <div class="result-card">
@@ -191,18 +181,15 @@ with col_right:
             if conf >= CONFIDENCE_THRESHOLD:
                 st.success("✅ Match Verified")
                 if st.button("🔊 Voice Broadcast"):
-                    speak(f"The detected sign is {label}")
+                    speak_web(f"Detection confirmed. This is a {label} sign.")
             else:
-                st.warning("⚠️ Low Signal Clarity")
+                st.warning("⚠️ Analysis Uncertain - Check Clarity")
     else:
-        # Radar Display (With Slide-in Animation)
         apply_styles("#00f2fe")
         with output_placeholder.container():
-            st.markdown('<div class="radar-box">', unsafe_allow_html=True)
             if lottie_radar:
-                st_lottie(lottie_radar, height=220, key="radar_final")
-            st.info("System Ready. Waiting for visual data...")
-            st.markdown('</div>', unsafe_allow_html=True)
+                st_lottie(lottie_radar, height=250, key="radar_vFinal")
+            st.info("System Standby. Waiting for visual input...")
 
 st.markdown("---")
-st.caption("Final Build | Animated UI v4.0 | Keras Engine")
+st.caption("Final Version | Web-Compatible Voice | Streamlit Cloud Ready")
