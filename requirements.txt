@@ -1,7 +1,6 @@
 streamlit
 tensorflow-cpu
 Pillow
-pyttsx3
 streamlit-lottie
 requests
 numpy
