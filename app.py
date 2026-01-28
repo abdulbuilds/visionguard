@@ -2,7 +2,6 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-import pyttsx3
 from datetime import datetime
 from streamlit_lottie import st_lottie
 import requests
@@ -12,7 +11,6 @@ from labels import FINAL_LABELS
 import pandas as pd
 import json
 import base64
-import threading
 
 # ==========================================
 # 1. INITIAL CONFIGURATION
@@ -171,18 +169,10 @@ def load_lottieurl(url: str):
 model = load_model()
 
 def speak(text):
-    """Text-to-speech with error handling - runs in background thread"""
-    def _speak():
-        try:
-            engine = pyttsx3.init()
-            engine.say(text)
-            engine.runAndWait()
-        except: 
-            pass
-    
-    # Run in separate thread so it doesn't block UI
-    thread = threading.Thread(target=_speak, daemon=True)
-    thread.start()
+    """Text-to-speech - disabled for Streamlit Cloud deployment"""
+    # pyttsx3 doesn't work on Streamlit Cloud (no audio drivers)
+    # Sound effects via HTML5 audio still work fine!
+    pass
 
 def preprocess_image(img):
     """Preprocess image for model input"""
@@ -449,22 +439,6 @@ with tab1:
                 bar_color = "#00ff88" if conf >= 85 else "#ffee00"
                 apply_styles(bar_color, st.session_state.theme)
                 play_voice_condition(conf)
-                
-                # Auto-speak the detected sign after music finishes
-                # Delay based on confidence level (different audio lengths)
-                def delayed_speak():
-                    import time
-                    # Wait for sound effect to finish (adjust timing as needed)
-                    if conf >= 90:
-                        time.sleep(2.0)  # High confidence sound duration
-                    elif conf >= 70:
-                        time.sleep(1.5)  # Medium confidence sound duration
-                    else:
-                        time.sleep(1.0)  # Low confidence sound duration
-                    speak(f"Detected: {label}")
-                
-                # Run in background thread
-                threading.Thread(target=delayed_speak, daemon=True).start()
                 
                 # History tracking - always add to show live updates
                 t_now = datetime.now().strftime("%H:%M:%S")
