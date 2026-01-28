@@ -4,6 +4,5 @@ Pillow
 streamlit-lottie
 requests
 numpy
-pyttsx3
 pandas
 plotly
