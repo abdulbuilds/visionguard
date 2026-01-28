@@ -11,6 +11,8 @@ from labels import FINAL_LABELS
 import pandas as pd
 import json
 import base64
+from gtts import gTTS
+import io
 
 # ==========================================
 # 1. INITIAL CONFIGURATION
@@ -169,10 +171,29 @@ def load_lottieurl(url: str):
 model = load_model()
 
 def speak(text):
-    """Text-to-speech - disabled for Streamlit Cloud deployment"""
-    # pyttsx3 doesn't work on Streamlit Cloud (no audio drivers)
-    # Sound effects via HTML5 audio still work fine!
-    pass
+    """Text-to-speech using gTTS (works on Streamlit Cloud!)"""
+    try:
+        # Generate speech using Google TTS
+        tts = gTTS(text=text, lang='en', slow=False)
+        
+        # Save to bytes buffer
+        audio_buffer = io.BytesIO()
+        tts.write_to_fp(audio_buffer)
+        audio_buffer.seek(0)
+        
+        # Convert to base64
+        audio_bytes = audio_buffer.read()
+        audio_b64 = base64.b64encode(audio_bytes).decode()
+        
+        # Play using HTML5 audio
+        audio_html = f"""
+            <audio autoplay="true" style="display:none;">
+                <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+            </audio>
+        """
+        st.markdown(audio_html, unsafe_allow_html=True)
+    except:
+        pass  # Silently fail if gTTS unavailable
 
 def preprocess_image(img):
     """Preprocess image for model input"""
@@ -439,6 +460,11 @@ with tab1:
                 bar_color = "#00ff88" if conf >= 85 else "#ffee00"
                 apply_styles(bar_color, st.session_state.theme)
                 play_voice_condition(conf)
+                
+                # Wait a moment then speak the sign name
+                import time
+                time.sleep(0.5)  # Small delay so sound effect starts first
+                speak(f"Detected: {label}")
                 
                 # History tracking - always add to show live updates
                 t_now = datetime.now().strftime("%H:%M:%S")
