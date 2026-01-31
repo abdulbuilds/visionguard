@@ -307,7 +307,7 @@ def apply_styles(bar_color="#00f2fe", theme="dark"):
 # 4. SIDEBAR - ACTIVITY LOG + EXPORT
 # ==========================================
 with st.sidebar:
-    st.title("🕒 Activity Log")
+    st.title(" Activity Log")
     
     # Theme toggle
     col1, col2 = st.columns(2)
@@ -392,7 +392,7 @@ st.title("🚦 VisionGuard Pro")
 st.caption("Advanced Neural Traffic Recognition System | v5.0")
 
 # Create tabs for different modes
-tab1, tab2 = st.tabs(["🎯 Single Detection", "📦 Batch Processing"])
+tab1, tab2 = st.tabs([" Single Detection", " Batch Processing"])
 
 # ==========================================
 # TAB 1: SINGLE DETECTION (Original UI)
@@ -614,3 +614,4 @@ with tab2:
 
 st.markdown("---")
 st.caption("VisionGuard Pro v5.0 | Enhanced Edition with Batch Processing & Analytics")
+
