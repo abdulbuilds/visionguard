@@ -1,9 +1,0 @@
-streamlit
-tensorflow-cpu
-Pillow
-streamlit-lottie
-requests
-numpy
-pandas
-plotly
-gTTS
